@@ -12,7 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 当前状态
 
-- 仓库尚无代码，只有 `spec_gps.md`；硬件选型、固件、手机 App、通信方案均未确定。
+- 仓库已托管到 GitHub（私有）：zyqing3/cat-gps-tracker，任务用 GitHub Issues 记录。
+- 硬件选型已定：LilyGO T-SIM7670G-S3（ESP32-S3 + SIM7670G，内置 GPS），见 `hardware_solution.md`；固件、手机 App、通信方案尚未确定。
 - 构建、烧录、测试命令与代码架构尚未存在 —— 待项目落地后补充到本文件中。
 
 ## 沟通说明
