@@ -13,8 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 当前状态
 
 - 仓库已托管到 GitHub（私有）：zyqing3/cat-gps-tracker，任务用 GitHub Issues 记录。
-- 硬件选型已定：LilyGO T-SIM7670G-S3（ESP32-S3 + SIM7670G，内置 GPS），见 `hardware_solution.md`；固件、手机 App、通信方案尚未确定。
-- 构建、烧录、测试命令与代码架构尚未存在 —— 待项目落地后补充到本文件中。
+- 硬件选型已定：LilyGO T-SIM7670G-S3（ESP32-S3 + SIM7670G，内置 GPS），见 `hardware_solution.md`。
+- 路线图已完成（GitHub issue #1，已关闭）：固件与通信方案已定 —— Arduino C++ ｜ Arduino CLI ｜ 第一阶段常开模式（4G/GPS 不断电）｜ HTTP POST 到自有 Traccar（traccar.atoo.top:8081，设备 cat-collar-001）。调研与设计文档见 `docs/research/`、`docs/design/`。
+- 构建命令已就绪：`bash scripts/compile.sh <草图路径>`（板子参数与宏定义已内置，官方示例编译验证通过）。烧录命令待开发板到货后补充。
+- 手机 App 为第二阶段，不在当前范围。
 
 ## 沟通说明
 
