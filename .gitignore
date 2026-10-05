@@ -1,0 +1,5 @@
+# 第三方参考代码（LilyGo 官方仓库，按需重新克隆即可）
+vendor/
+
+# Arduino CLI 编译产物
+firmware/build/
