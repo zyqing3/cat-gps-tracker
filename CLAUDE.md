@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 硬件选型已定：LilyGO T-SIM7670G-S3（ESP32-S3 + SIM7670G，内置 GPS），见 `hardware_solution.md`。
 - 路线图已完成（GitHub issue #1，已关闭）：固件与通信方案已定 —— Arduino C++ ｜ Arduino CLI ｜ 第一阶段常开模式（4G/GPS 不断电）｜ HTTP POST 到自有 Traccar（traccar.atoo.top:8081，设备 cat-collar-001）。调研与设计文档见 `docs/research/`、`docs/design/`。
 - 构建命令已就绪：`bash scripts/compile.sh <草图路径>`（板子参数与宏定义已内置，官方示例编译验证通过）。烧录命令待开发板到货后补充。
+- 测试命令已就绪：`bash scripts/test_payload.sh`（报文模块本机单测，用 Qt 自带 MinGW g++）、`bash scripts/simulate_report.sh [纬度] [经度]`（模拟上报到真实服务器）。固件骨架与报文模块在 `firmware/gps_collar/`，编译 0 错误、测试全绿、模拟上报已通过服务器验证。
 - 手机 App 为第二阶段，不在当前范围。
 
 ## 沟通说明
