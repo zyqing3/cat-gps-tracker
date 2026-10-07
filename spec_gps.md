@@ -8,7 +8,7 @@
 
 # 方案设计
 ## 硬件方案
-采用lilygo的T-SIM7670G-S3[SIM内置GPS] H802开发板。
+采用lilygo的T-SIM7670G-S3-Standard[SIM内置GPS] H802开发板。
 详细资料见：https://wiki.lilygo.cc/products/t-sim-series/t-sim7670g-s3/
 https://github.com/Xinyuan-LilyGO/LilyGo-Modem-Series/blob/main/docs/standard_series_comparison.md
 https://github.com/Xinyuan-LilyGO/LilyGo-Modem-Series/
