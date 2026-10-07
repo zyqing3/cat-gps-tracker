@@ -16,8 +16,8 @@ AC="/c/Program Files/Arduino CLI/arduino-cli.exe"
 SKETCH="${1:-vendor/LilyGo-Modem-Series/examples/GPS_BuiltIn}"
 
 "$AC" compile \
-  --fqbn "esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio" \
-  --build-property "compiler.cpp.extra_flags=-DLILYGO_T_SIM7670G_S3" \
+  --fqbn "esp32:esp32:esp32s3:PSRAM=enabled,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio" \
+  --build-property "compiler.cpp.extra_flags=-DLILYGO_SIM7670G_S3_STAN" \
   --libraries vendor/LilyGo-Modem-Series/lib \
   "$SKETCH"
 

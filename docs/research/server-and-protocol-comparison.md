@@ -25,7 +25,7 @@
 | 开发方式 | 本路线图已定 **Arduino CLI**（可全自动编译/烧录）；LilyGo 官方文档与 CI 走 PlatformIO，两者都可以 |
 | 用哪个库 | **TinyGSM**（注意：必须用 LilyGo 的**分支版**，原版编译不过）+ **TinyGPSPlus**，仓库 `LilyGo-Modem-Series` |
 | 代码里的型号宏 | `#define TINY_GSM_MODEM_SIM7672` |
-| 引脚 | 模块串口 **RX=10、TX=11、115200**；开机键 **PWRKEY=18**（⚠️ 官方 wiki 快速上手页写的 RX=4/TX=5 是另一块板子的，是错的；以仓库 `utilities.h` 为准，详见 docs/research/lilygo-t-sim7670g-s3-gnss-arduino.md） |
+| 引脚 | 模块串口 **RX=5、TX=4、115200**；开机键 **PWRKEY=46**（本板为 **T-SIM7670G-S3-Standard**；wiki 快速上手页的 RX=4/TX=5 正是 Standard 引脚、但 PWRKEY 数字有误；Pro 版才是 RX=10/TX=11。以仓库 `utilities.h` 为准，详见 docs/research/lilygo-t-sim7670g-s3-gnss-arduino.md） |
 | 联网 | `modem.gprsConnect("你的APN","","")` |
 | 定位 | `modem.enableGPS(4, 1)` / `modem.getGPS(...)`（具体参数以 GPS 调研报告为准） |
 

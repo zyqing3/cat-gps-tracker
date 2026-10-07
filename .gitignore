@@ -3,6 +3,7 @@ vendor/
 
 # Arduino CLI 编译产物
 firmware/build/
+firmware/gps_collar/build/
 
 # 本机测试的可执行文件
 tests/*.exe

@@ -10,7 +10,7 @@
 - 目标：每分钟把 GPS 定位信息上传到 Traccar demo 服务器，服务器上能在地图看到实时位置。
 - 已定决策（详见路线图 #1）：
   - 语言/环境：**Arduino C++，Arduino CLI**
-  - 硬件：LilyGO T-SIM7670G-S3（ESP32-S3 + SIM7670G 内置 GPS）
+  - 硬件：LilyGO T-SIM7670G-S3-Standard（ESP32-S3 + SIM7670G 内置 GPS；16MB 闪存 / 2MB QSPI PSRAM）
   - 上传：HTTP(S) POST → Traccar（OsmAnd 协议，端口 5055），**每 60 秒一次**
   - 供电：USB/充电宝，**第一阶段不考虑低功耗**：4G 保持连接、GPS 保持供电，全程不进入休眠（省电策略留给第二阶段电池版）
 - 不在范围：手机 App、电池低功耗、外壳。
@@ -32,17 +32,17 @@ firmware/
 ```
 ┌─────────────┐   ┌──────────────┐   ┌────────────┐   ┌──────────┐   ┌─────────────────┐
 │ 1. 串口初始化 │ → │ 2. 模块开机   │ → │ 3. 联网    │ → │ 4. 开 GPS │ → │ 5. 进入主循环    │
-│ USB 监视 115200│   │ PWRKEY=18 脉冲 │   │ SIM/GPRS   │   │ 给天线供电  │   │ 每 60 秒：定位→上传│
+│ USB 监视 115200│   │ PWRKEY=46 脉冲 │   │ SIM/GPRS   │   │ 给天线供电  │   │ 每 60 秒：定位→上传│
 │ Serial1 115200 │   │ 等 AT 就绪    │   │ 等网络注册  │   │ 等首次定位  │   │  → 等待 → 重复    │
 └─────────────┘   └──────────────┘   └────────────┘   └──────────┘   └─────────────────┘
 ```
 
 每一步的要点（对应调研结论）：
 
-1. **串口初始化**：USB 串口看日志；`Serial1`（RX=10 / TX=11 / 115200）连接 4G 模块。
-2. **模块开机**：用 `PWRKEY=18` 给一个脉冲唤醒 SIM7670G，然后等它回 `AT` 就绪。
+1. **串口初始化**：USB 串口看日志；`Serial1`（RX=5 / TX=4 / 115200）连接 4G 模块。
+2. **模块开机**：用 `PWRKEY=46` 给一个脉冲唤醒 SIM7670G，然后等它回 `AT` 就绪。
 3. **联网**：检查 SIM 卡 → 等待注册到运营商网络 → `gprsConnect(APN)`。普通 SIM 卡 APN 一般留空或按运营商填（config.h 里可改）。
-4. **开 GPS**：调 `modem.enableGPS(4, 1)`（库内部会发 `AT+CGDRT=4,1` 和 `AT+CGSETV=4,1` 给**有源天线供电**——漏掉这一步永远搜不到星）；等待首次定位，**室外开阔处约 30 秒到几分钟**。
+4. **开 GPS**：调 `modem.enableGPS(MODEM_GPS_ENABLE_GPIO, MODEM_GPS_ENABLE_LEVEL)`（本板 Standard 版 = GPIO 1；库内部会发 `AT+CGDRT=1,1` 和 `AT+CGSETV=1,1` 给**有源天线供电**——漏掉这一步永远搜不到星）；等待首次定位，**室外开阔处约 30 秒到几分钟**。
 5. **进入主循环**（见下节）。
 
 ## 4. 主循环状态机
@@ -95,7 +95,7 @@ firmware/
 | `connectNetwork()` | 等 SIM 注册 + GPRS 连接，失败自动重试（最多 N 次） |
 | `startGps()` | `enableGPS(4,1)` + 等首次定位（带超时） |
 | `readGps()` | `getGPS()` 读经纬度/时间/速度；解析失败返回 false |
-| `uploadLocation()` | 组装 OsmAnd 查询串 → HTTPS POST → 检查返回码，失败重试 1 次 |
+| `uploadLocation()` | 组装 OsmAnd 查询串 → **模组内置 HTTP 客户端** POST → 检查返回码，失败重试 1 次（⚠️ 不用 ArduinoHttpClient：实测 SIM7670G-MNGV 固件下 TinyGSM TCP 读通道收不到回应，HTTP 恒为 0；内置 HTTP 栈正常，见 2026-10-07 实测记录） |
 | `checkAndReconnect()` | 每个周期末尾查网络状态，断了重连 |
 
 > 注意：刻意**没有**电源管理（睡眠/唤醒）函数——第一阶段 4G 和 GPS 常开；第二阶段做电池版时再加。
@@ -126,7 +126,7 @@ firmware/
 1. **必须用 LilyGo 分支版 TinyGSM**（原版编译不过）——Arduino CLI 用 `--libraries` 直接引用仓库 `lib/`。
 2. **开 GPS 前给有源天线供电**（库内已实现，别删那两行）。
 3. **必须接有源 GPS 天线**，室内基本收不到；演示拿到室外。
-4. 官方 wiki 引脚写错了（RX=4/TX=5 是另一块板），以 `utilities.h` 为准：RX=10/TX=11/PWRKEY=18。
+4. 引脚一律以 `utilities.h` 为准（本板 Standard 版：RX=5/TX=4/PWRKEY=46/DTR=7）。官方 wiki 快速上手页的 RX=4/TX=5 是 Standard 引脚、但 PWRKEY 数字对不上，勿信。
 5. GPS 返回时间是 UTC，显示北京时间要 +8 小时。
 6. USB 供电要能供 2A。
 

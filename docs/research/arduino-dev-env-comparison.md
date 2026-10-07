@@ -338,9 +338,9 @@ arduino-cli core install esp32:esp32
 ```bash
 arduino-cli compile \
   -b esp32:esp32:esp32s3 \
-  --board-options "PSRAM=opi,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio" \
+  --board-options "PSRAM=enabled,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio" \
   --libraries "<仓库>/lib" \
-  --build-property "compiler.cpp.extra_flags=-DLILYGO_T_SIM7670G_S3" \
+  --build-property "compiler.cpp.extra_flags=-DLILYGO_SIM7670G_S3_STAN" \
   --output-dir ./build \
   "<仓库>/examples/GPS_BuiltIn"
 ```
@@ -357,7 +357,7 @@ arduino-cli compile \
 
 | 选项名 | 本板该填 | 含义 |
 | --- | --- | --- |
-| `PSRAM` | `opi`（8MB 版）/ `enabled`（Standard 2MB 版） | OPI 还是 QSPI 内存 |
+| `PSRAM` | `enabled`（本板为 Standard 版 2MB QSPI；8MB Pro 版才是 `opi`） | OPI 还是 QSPI 内存 |
 | `FlashSize` | `16M` | 板子是 16MB 闪存 |
 | `PartitionScheme` | `app3M_fat9M_16MB` | 官方要求的 "16M Flash (3MB APP/9.9MB FATFS)" |
 | `CDCOnBoot` | `cdc` | **USB CDC On Boot = Enable** |
