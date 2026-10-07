@@ -539,7 +539,7 @@ modem.disableGPS(MODEM_GPS_ENABLE_GPIO, !MODEM_GPS_ENABLE_LEVEL);  // 关 GPS + 
 
 | 事项 | 说明 |
 |---|---|
-| LilyGO 官方 wiki 的引脚号是**错的** | `wiki.lilygo.cc/products/t-sim-series/t-sim7670g-s3/quick-start.html` 的代码里写 `// SIM7670G UART: RX=4, TX=5, PWR_KEY=12`，并且真的用 `modemSerial.begin(115200, SERIAL_8N1, 4, 5)` / `pinMode(12, OUTPUT)`。其中 **RX=4 / TX=5 是 `utilities.h` 里 `LILYGO_SIM7080G_S3` 那一块的串口引脚（第 720-721 行）**，是 wiki 复制粘贴错了（`PWR_KEY=12` 对不上任何一个板型的 `BOARD_PWRKEY_PIN`，来源不明）。**以仓库里的 `utilities.h` 为准：RX=10 / TX=11 / PWRKEY=18。** |
+| LilyGO 官方 wiki 的引脚号是**错的** | `wiki.lilygo.cc/products/t-sim-series/t-sim7670g-s3/quick-start.html` 的代码里写 `// SIM7670G UART: RX=4, TX=5, PWR_KEY=12`，并且真的用 `modemSerial.begin(115200, SERIAL_8N1, 4, 5)` / `pinMode(12, OUTPUT)`。**2026-10 板子到货后实测澄清**：RX=4 / TX=5 正是 **Standard 版（`LILYGO_SIM7670G_S3_STAN`）的串口引脚**（`PWR_KEY=12` 对不上任何板型，wiki 自身有误）。**本板实际为 T-SIM7670G-S3-Standard，引脚以 `utilities.h` 的 STAN 段为准：RX=5 / TX=4 / PWRKEY=46 / DTR=7；Pro 版才是 RX=10 / TX=11 / PWRKEY=18。** |
 | `modem.getGPS()` 返回的经纬度到底是什么格式 | 真实设备日志显示是十进制度（Issue #133），驱动源码里没有做 ddmm→度的换算。**建议第一次上机时把 `getGPSraw()` 的原始字符串和 `getGPS()` 的数值一起打印出来对一遍**——这是最保险的验证方法。 |
 | `AT+CGNSSINFO` 在某些固件上是否真的一直为空 | Issue #477 用户报告有（固件 `B04V01_241010`），作者不认可（认为是他没开天线电）。**需要实测。** |
 | `stream.read()` 读 N/S、E/W 偶尔返回 255 的问题是否还在 | 只在 Issue #133 的一条用户评论里出现，作者未回复确认。当前源码（`TinyGsmClientSIM7672.h` 第 834、837 行）仍然是 `stream.read()` 写法。 |

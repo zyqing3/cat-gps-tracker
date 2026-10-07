@@ -8,7 +8,12 @@
 
 # 方案设计
 ## 硬件方案
-采用lilygo的T-SIM7670G-S3[SIM内置GPS] H802开发板。详细资料见：https://wiki.lilygo.cc/products/t-sim-series/t-sim7670g-s3/
+采用lilygo的T-SIM7670G-S3[SIM内置GPS] H802开发板。
+详细资料见：https://wiki.lilygo.cc/products/t-sim-series/t-sim7670g-s3/
+https://github.com/Xinyuan-LilyGO/LilyGo-Modem-Series/blob/main/docs/standard_series_comparison.md
+https://github.com/Xinyuan-LilyGO/LilyGo-Modem-Series/
+https://lilygo.cc/pages/lilygo-spark
+
 ## 固件方案
 用便于agent自主编译，下载，测试的开发环境，具体你调研后决定--待定
 用基于arduino或者lilygo的参考固件，具体你调研后决定--待定
