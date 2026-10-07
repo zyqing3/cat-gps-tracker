@@ -194,13 +194,27 @@ bool readGps(GPSInfo &info)
     return modem.getGPS_Ex(info);
 }
 
-// 真正发 HTTP POST（失败原因：超时/断网/服务器错误，返回值是 HTTP 状态码）
+// 真正发 HTTP POST：用模组内置 HTTP 客户端（官方 Traccar 示例同款）
+// 为什么不用 ArduinoHttpClient：实测本板模组固件（SIM7670G-MNGV）下 TinyGSM
+// 的 TCP 读通道收不到服务器回应（HTTP code 恒为 0）；模组内置 HTTP 栈
+// 请求和回应都在模组内部处理，绕开该问题。服务器是明文 HTTP，URL 用 http://。
 int httpPost(const std::string &body)
 {
-    HttpClient http(gsmClient, cfg.server.c_str(), cfg.port);
-    http.setHttpResponseTimeout(15000); // 15 秒没响应就放弃，别卡住主循环
-    int code = http.post("/", "application/x-www-form-urlencoded", String(body.c_str()));
-    http.stop();
+    if (!modem.https_begin()) {
+        Serial.println("http_begin failed");
+        return -1;
+    }
+    char url[64];
+    snprintf(url, sizeof(url), "http://%s:%d/", cfg.server.c_str(), cfg.port);
+    if (!modem.https_set_url(String(url))) {
+        Serial.println("https_set_url failed");
+        modem.https_end();
+        return -2;
+    }
+    modem.https_set_user_agent("TinyGSM/LilyGo");
+    modem.https_set_content_type("application/x-www-form-urlencoded");
+    int code = modem.https_post(String(body.c_str()));
+    modem.https_end();
     return code;
 }
 
