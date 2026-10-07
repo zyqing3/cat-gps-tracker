@@ -95,7 +95,7 @@ firmware/
 | `connectNetwork()` | 等 SIM 注册 + GPRS 连接，失败自动重试（最多 N 次） |
 | `startGps()` | `enableGPS(4,1)` + 等首次定位（带超时） |
 | `readGps()` | `getGPS()` 读经纬度/时间/速度；解析失败返回 false |
-| `uploadLocation()` | 组装 OsmAnd 查询串 → HTTPS POST → 检查返回码，失败重试 1 次 |
+| `uploadLocation()` | 组装 OsmAnd 查询串 → **模组内置 HTTP 客户端** POST → 检查返回码，失败重试 1 次（⚠️ 不用 ArduinoHttpClient：实测 SIM7670G-MNGV 固件下 TinyGSM TCP 读通道收不到回应，HTTP 恒为 0；内置 HTTP 栈正常，见 2026-10-07 实测记录） |
 | `checkAndReconnect()` | 每个周期末尾查网络状态，断了重连 |
 
 > 注意：刻意**没有**电源管理（睡眠/唤醒）函数——第一阶段 4G 和 GPS 常开；第二阶段做电池版时再加。
