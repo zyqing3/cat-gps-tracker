@@ -34,10 +34,198 @@ payload::Config cfg;
 // 省电参数（从 config.h 填入）
 power::Params params;
 
-// 打印带运行秒数的日志行
+// ---------- 实时时钟（毫秒级日志时间戳） ----------
+// 权威时钟源：GPS 卫星 UTC 时间（定位成功后校准）；定位前用模组 AT+CCLK? 过渡。
+// 毫秒部分用 ESP32 micros() 细分；未同步成功前退回 [开机秒数] 格式。
+uint64_t wallEpochMs = 0;   // 同步时刻的墙上时间（显示时区，毫秒）
+uint32_t wallMicros  = 0;   // 同步时刻的 micros() 读数
+bool wallTimeValid   = false;
+
+#define LOG_TZ_HOURS 8  // 日志显示时区（北京时间）
+
+// 年/月/日 → 从 1970-01-01 起的天数（Howard Hinnant 算法）
+long daysFromCivil(int y, int mo, int d)
+{
+    y -= mo <= 2;
+    long era = (y >= 0 ? y : y - 399) / 400;
+    long yoe = y - era * 400;
+    long doy = (153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return era * 146097 + doe - 719468;
+}
+
+// 从 1970-01-01 起的天数 → 年/月/日（civil_from_days 反算）
+void civilFromDays(long z, int &y, int &m, int &d)
+{
+    z += 719468;
+    long era = (z >= 0 ? z : z - 146096) / 146097;
+    unsigned doe = z - era * 146097;
+    unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    y = (int)yoe + era * 400;
+    unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    unsigned mp = (5 * doy + 2) / 153;
+    d = (int)(doy - (153 * mp + 2) / 5 + 1);
+    m = (int)(mp + (mp < 10 ? 3 : -9));
+    y += (m <= 2);
+}
+
+// 用一组 UTC 日期时间校准墙钟（显示时区 = UTC + LOG_TZ_HOURS）
+void setWallClockFromUtc(int year, int month, int day, int hour, int minute, int second)
+{
+    long utcSec = daysFromCivil(year, month, day) * 86400L
+                + hour * 3600L + minute * 60L + second;
+    wallEpochMs = (uint64_t)(utcSec + LOG_TZ_HOURS * 3600L) * 1000ULL;
+    wallMicros  = micros();
+    wallTimeValid = true;
+}
+
+// 从运营商网络同步时间（AT+CCLK? 格式 "yy/mm/dd,hh:mm:ss+zz"，zz=四分之一小时）
+// 只在还没同步过时问一次（GPS 定位后墙钟更准，不许它再覆盖）。
+void syncWallClock()
+{
+    if (wallTimeValid) {
+        return;  // 已同步过（尤其被 GPS 校准过），不再覆盖
+    }
+    modem.sendAT("+CCLK?");
+    if (modem.waitResponse(3000L, "+CCLK:") != 1) {
+        return;  // 问不到就保持旧值（或 [秒数] 格式）
+    }
+    String s = modem.stream.readStringUntil('\n');
+    modem.waitResponse();
+    s.trim();
+    Serial.printf("[raw CCLK] %s\n", s.c_str());  // 调试用：看模组到底报什么格式
+
+    int yy, mo, dd, hh, mi, ss, zz;
+    if (sscanf(s.c_str(), "\"%d/%d/%d,%d:%d:%d%d\"",
+               &yy, &mo, &dd, &hh, &mi, &ss, &zz) != 7) {
+        return;  // 格式不对，放弃这次同步
+    }
+    // 实测本板模组（SIM7670G-MNGV）CCLK 的正文就是 UTC：
+    // 时区标签 zz 报 +32（+8 小时）但时钟本身没加偏移。
+    // 所以直接把读数当 UTC 用（换算北京时间在 setWallClockFromUtc 里 +8）。
+    // 换卡/换运营商后若行为变了，看 [raw CCLK] 调试打印再调整。
+    setWallClockFromUtc(2000 + yy, mo, dd, hh, mi, ss);
+}
+
+// 打印当前时间戳（HH:MM:SS.mmm）；没同步到时间时退回 [开机秒数]
+void logTime()
+{
+    if (wallTimeValid) {
+        uint64_t ms = wallEpochMs + (uint64_t)((micros() - wallMicros) / 1000U);
+        long secs = (long)(ms / 1000ULL);
+        int msec = (int)(ms % 1000ULL);
+        int h = (secs / 3600) % 24;
+        int m = (secs / 60) % 60;
+        int s = secs % 60;
+        Serial.printf("%02d:%02d:%02d.%03d ", h, m, s, msec);
+    } else {
+        Serial.printf("[%lu] ", millis() / 1000);
+    }
+}
+
+// 打印带实时时间戳的日志行
 void logStep(const char *msg)
 {
-    Serial.printf("[%lu] %s\n", millis() / 1000, msg);
+    logTime();
+    Serial.println(msg);
+}
+
+// 查询模组睡眠/唤醒状态（AT+LPSTATUS 手册 8.2.8：DTR 电平/USB/CSCLK 模式/GPS 状态）
+// 用来证明模组确实睡了/醒了（#26），配合电流表交叉验证
+void printLpStatus(const char *label)
+{
+    modem.sendAT("+LPSTATUS");
+    if (modem.waitResponse(3000L, "+LPSTATUS:") != 1) {
+        return;
+    }
+    // 回应是多行的：SLEEP: / DTR_LEVEL=x, / USB_PHY=x, / CSCLK=x, / GPS_STATUS=x.
+    String lines[6];
+    for (int i = 0; i < 6; ++i) {
+        lines[i] = modem.stream.readStringUntil('\n');
+        lines[i].trim();
+    }
+    modem.waitResponse();
+    Serial.printf("%s: %s %s %s\n", label, lines[2].c_str(), lines[4].c_str(), lines[5].c_str());
+}
+
+// 打印 GPS 原始诊断串（AT+CGNSSINFO 的原始回应）：
+//   mode(0/1=未定位 2=2D 3=3D) + 四大星座卫星数(GPS/北斗/GLONASS/Galileo)
+//   + 经纬度 + 时间 + PDOP/HDOP/VDOP
+// 没定位成功时也能看到"天线到底收没收到卫星信号"，用于排查天线/信号问题。
+void printGpsRaw(const char *label)
+{
+    String raw = modem.getGPSraw();
+    logTime();
+    Serial.printf("%s: %s\n", label,
+                  raw.length() ? raw.c_str() : "(modem no response)");
+}
+
+// ---------- AGPS 辅助注入 ----------
+// 上一轮定位（备用：将来若要给 CAGPSTOGPS 注入辅助位置用，5 公里内有效即可）
+double lastFixLat = 0;
+double lastFixLon = 0;
+bool lastFixValid = false;
+
+// 查 GPS 芯片里 AGPS 数据有效性（AT+CAGPSCHK：四星座的 接收/可用 状态位；
+// 手册 21.2.26，GNSS 上电后有效）。返回：是否有任一星座星历可用（US 位=1）。
+bool checkAgps()
+{
+    modem.sendAT("+CAGPSCHK");
+    if (modem.waitResponse(3000L, "+CAGPSCHK:") != 1) {
+        return false;
+    }
+    String s = modem.stream.readStringUntil('\n');
+    modem.waitResponse();
+    s.trim();
+    Serial.print("AGPS chip data: ");
+    Serial.println(s);
+    // 8 个字段：GPS(接收,可用) BDS(接收,可用) GAL(接收,可用) GLO(接收,可用)
+    int v[8] = {0};
+    if (sscanf(s.c_str(), "%d,%d,%d,%d,%d,%d,%d,%d",
+               &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7]) != 8) {
+        return false;
+    }
+    return v[1] == 1 || v[3] == 1 || v[5] == 1 || v[7] == 1;
+}
+
+// 轮询等芯片数据就绪：注入完成回应后，模组内部对星历的校验是异步的
+// （实测有时要几秒），CHK 查早了是 0、晚一点变 1。
+bool waitChipDataReady(int maxTries)
+{
+    for (int i = 0; i < maxTries; ++i) {
+        if (checkAgps()) {
+            return true;
+        }
+        delay(1000);
+    }
+    return false;
+}
+
+// AGPS（QEPO 星历）流程（SIM76XX 官方手册 21.2.23~24）——最终方案：
+//   模式 0 直注（CAGPSTOLOCAL=0 预拉 + CAGPS 下载，两步都等完成）。
+//   这是 8 种对照实验中唯一稳定加速定位的配方（定位 2~11 秒）。
+//   实验结论：手动注入（CAGPSTOGPS 的 RAM/flash 路径、上电前/后、带不带辅助
+//   时间位置、热启动与否）全部无效——引擎只吃模组内部直注管线的数据
+//   （内部管线用模块自己的网络时钟做 ms 级时间辅助，手动注入提供不了）。
+void runAgps()
+{
+    // 第一步：模式 0 配置 + 预拉（实测必须等它完成，否则后面 CAGPS 白下载）
+    modem.sendAT("+CAGPSTOLOCAL=0");
+    if (modem.waitResponse(30000L, "+AGPS:") == 1) {
+        String r = modem.stream.readStringUntil('\n');
+        modem.waitResponse();
+        r.trim();
+        Serial.printf("AGPS pull(mode0) reply: %s\n", r.c_str());
+    }
+    checkAgps();
+
+    // 第二步：CAGPS 下载（配合模式 0，数据真正注入芯片）
+    if (modem.enableAGPS()) {
+        logStep("AGPS data ready");
+        checkAgps();
+    } else {
+        logStep("AGPS unavailable, fall back to autonomous cold start");
+    }
 }
 
 
@@ -46,6 +234,10 @@ void logStep(const char *msg)
 // 唤醒 4G 模块：DTR 拉低 → 等 AT 就绪 → 必要时 PWRKEY 脉冲重开 → 确保网络在线
 power::Event stepWakeModem()
 {
+    // 先释放深睡期间锁存的 DTR（gpio_hold 在 S3 上会跨深睡保持，
+    // 不解锁的话下面拉低 DTR 不生效，模块永远叫不醒 → 每次都走 PWRKEY 硬重启）
+    gpio_hold_dis((gpio_num_t)MODEM_DTR_PIN);
+
     // DTR 拉低唤醒模块（官方示例同款，醒来后网络附着还在）
     pinMode(MODEM_DTR_PIN, OUTPUT);
     digitalWrite(MODEM_DTR_PIN, LOW);
@@ -78,6 +270,7 @@ power::Event stepWakeModem()
         return power::Event::ModemDead;
     }
 
+
     // 确保网络在线：睡眠唤醒后附着通常还在；被 PWRKEY 重开过则要重新注册
     RegStatus status = modem.getRegistrationStatus();
     if (status != REG_OK_HOME && status != REG_OK_ROAMING) {
@@ -93,6 +286,32 @@ power::Event stepWakeModem()
         logStep("activating network (GPRS)");
         modem.setNetworkActive(APN);
     }
+    syncWallClock();  // 拿到网络时间，日志从此用实时时间戳
+
+#if PSM_ENABLE
+    // PSM：向网络申请"上传完就深睡、保留注册"（睡眠电流可降到微安级；
+    // 是否批准由运营商网络决定，官方示例参数）
+    modem.sendAT("+CPSMS=1,,,\"01101111\",\"00001111\"");
+    if (modem.waitResponse(3000L) == 1) {
+        logStep("PSM requested (TAU/active per official example)");
+    }
+#endif
+#if EDRX_ENABLE
+    // eDRX：延长寻呼周期（睡觉时少醒几次听基站喊话），E-UTRAN(4)，请求 2621.44s
+    modem.sendAT("+CEDRXS=1,4,\"1101\"");
+    if (modem.waitResponse(3000L) == 1) {
+        // 读回网络实际批准值（AcT=0 表示当前小区不支持 eDRX）
+        modem.sendAT("+CEDRXRDP");
+        if (modem.waitResponse(3000L, "+CEDRXRDP:") == 1) {
+            String s = modem.stream.readStringUntil('\n');
+            modem.waitResponse();
+            s.trim();
+            Serial.printf("eDRX granted: %s\n", s.c_str());
+        }
+    }
+#endif
+
+    printLpStatus("modem awake status");
     return power::Event::ModemReady;
 }
 
@@ -110,8 +329,19 @@ power::Event stepEnableGps()
     modem.setGPSMode(GNSS_MODE_GPS_GLONASS_GALILEO_BDS);
 #endif
 
-    // 热启动"免费彩票"：星历还在 → 几秒定位；不在 → 自动按冷启动搜，无害
-    modem.gpsHotStart();
+    // 注意：不要发 gpsHotStart()！实测 GNSS 断电重开后星历已作废，
+    // 强制热启动会让引擎拿着坏星历乱搜（120 秒一颗星都没有）；
+    // 不干预时引擎按数据有效性自动冷启动，几十秒即有星。
+    // （常开版从不热启动，定位正常——此处留作坑位标记）
+
+#if AGPS_ENABLE
+    runAgps();
+#endif
+
+    // 诊断信息：GNSS 电源状态 + 一次原始状态采样（看天线是否收到卫星）
+    Serial.printf("GNSS power: %s\n", modem.isEnableGPS() ? "ON" : "OFF?");
+    printGpsRaw("GPS raw after power-on");
+
     logStep("GNSS powered on, waiting for fix");
     return power::Event::GpsReady;
 }
@@ -120,15 +350,57 @@ power::Event stepEnableGps()
 power::Event stepWaitFix(GPSInfo &info)
 {
     unsigned long t0 = millis();
+    bool printedBad = false;
     while (millis() - t0 < params.gpsFixTimeoutS * 1000UL) {
         if (modem.getGPS_Ex(info)) {
-            Serial.printf("[%lu] GPS fix: lat=%.6f lon=%.6f sats=%d\n",
-                          millis() / 1000,
-                          info.latitude, info.longitude, info.gps_satellite_num);
+            // 数据体检：刚上电的 GNSS 偶尔报"假定位"（mode=2/3 但时间乱码、卫星数=0），
+            // 这种数据不能上传（服务器会拒收），当作没定位继续等。
+            bool dateOk = (info.year >= 2020 && info.year <= 2099 &&
+                           info.month >= 1 && info.month <= 12 &&
+                           info.day >= 1 && info.day <= 31 &&
+                           info.hour >= 0 && info.hour <= 23 &&
+                           info.minute >= 0 && info.minute <= 59);
+            if (!dateOk) {
+                if (!printedBad) {
+                    printGpsRaw("GPS bad fix data (ignored, keep waiting)");
+                    printedBad = true;
+                }
+                delay(1000);
+                continue;
+            }
+            // 用 GPS 的 UTC 时间校准墙钟（权威时间源），此后日志为北京时间
+            setWallClockFromUtc(info.year, info.month, info.day,
+                                info.hour, info.minute, info.second);
+
+            // 记下本轮定位，供下一轮 AGPS 辅助位置注入
+            lastFixLat = info.latitude;
+            lastFixLon = info.longitude;
+            lastFixValid = true;
+
+            // 同步模组时钟为准确的北京时间+32：XTRA 星历文件有有效期，
+            // 校验用模组本地时间——网络同步来的时间正文是 UTC 却标 +32（错 8 小时），
+            // 会导致刚下载的 XTRA 被判过期白下载。每轮定位后顺手纠正，
+            // 下一轮的 XTRA 就能通过校验、真正加速定位。
+            {
+                char cclk[40];
+                snprintf(cclk, sizeof(cclk), "+CCLK=\"%02d/%02d/%02d,%02d:%02d:%02d+32\"",
+                         info.year % 100, info.month, info.day,
+                         (info.hour + LOG_TZ_HOURS) % 24, info.minute, info.second);
+                modem.sendAT(cclk);
+                modem.waitResponse(1000L);
+            }
+            logTime();
+            Serial.printf("GPS fix: lat=%.6f lon=%.6f sats GPS=%d BDS=%d GLO=%d GAL=%d pdop=%.1f hdop=%.1f\n",
+                          info.latitude, info.longitude,
+                          info.gps_satellite_num, info.beidou_satellite_num,
+                          info.glonass_satellite_num, info.galileo_satellite_num,
+                          info.PDOP, info.HDOP);
             return power::Event::GpsFix;
         }
         delay(1000);
     }
+    // 超时：打印原始 GNSS 状态，排查天线/信号问题
+    printGpsRaw("GPS raw (no fix)");
     logStep("GPS timeout, no fix this cycle");
     return power::Event::GpsTimeout;
 }
@@ -175,15 +447,18 @@ power::Event stepUpload(const GPSInfo &info)
     loc.second = info.second;
 
     std::string body = payload::buildBody(cfg, loc);
-    Serial.printf("[%lu] Upload: %s\n", millis() / 1000, body.c_str());
+    logTime();
+    Serial.printf("Upload: %s\n", body.c_str());
 
     for (int attempt = 1; ; ++attempt) {
         int code = httpPost(body);
         if (code == 200) {
-            Serial.printf("[%lu] Upload OK (attempt %d)\n", millis() / 1000, attempt);
+            logTime();
+            Serial.printf("Upload OK (attempt %d)\n", attempt);
             return power::Event::UploadOk;
         }
-        Serial.printf("[%lu] Upload failed (attempt %d, HTTP %d)\n", millis() / 1000, attempt, code);
+        logTime();
+        Serial.printf("Upload failed (attempt %d, HTTP %d)\n", attempt, code);
         if (!power::shouldRetryUpload(attempt)) {
             return power::Event::UploadFailed;
         }
@@ -207,8 +482,9 @@ power::Event stepCheckNetwork()
 // 周期收尾：关 GPS → 让模块睡觉 → ESP32 深睡到下一个周期
 void goToSleep(const power::SleepDecision &d)
 {
-    Serial.printf("[%lu] Cycle end: %s, sleep %lu s\n",
-                  millis() / 1000, d.reason, (unsigned long)d.sleepSeconds);
+    logTime();
+    Serial.printf("Cycle end: %s, sleep %lu s\n",
+                  d.reason, (unsigned long)d.sleepSeconds);
 
     // 关天线 + GNSS 总电源（库内 CGDRT=4,0 + CGSETV=4,0 + CGNSSPWR=0）
     modem.disableGPS(MODEM_GPS_ENABLE_GPIO, 0);
@@ -217,16 +493,29 @@ void goToSleep(const power::SleepDecision &d)
     modem.sleepEnable(true);
     pinMode(MODEM_DTR_PIN, OUTPUT);
     digitalWrite(MODEM_DTR_PIN, HIGH);
-    // 尽量让 DTR 电平保持到深睡期间（待硬件实测验证；
-    // 若保持不住，模块只是提前醒来多耗一点电，不影响功能）
+    // 锁住 DTR 高电平，让模块在深睡期间安心睡觉：
+    // gpio_hold_en 锁引脚电平，S3 上还要 gpio_deep_sleep_hold_en 才跨深睡生效
     gpio_hold_en((gpio_num_t)MODEM_DTR_PIN);
+    gpio_deep_sleep_hold_en();
     delay(100);
+
+    printLpStatus("modem sleep status");  // 证明模组确实睡了（#26）
+
     Serial.flush();
 
+#if DEBUG_ESP_NO_SLEEP
+    // 调试模式：ESP32 保持清醒只延时（USB 串口不断线，方便盯模组状态）；
+    // 模组此刻照常在睡觉（DTR 被 hold 锁在高电平 + CSCLK=1）。
+    logTime();
+    Serial.printf("(debug) ESP32 awake, delaying %lu s (modem asleep)\n",
+                  (unsigned long)d.sleepSeconds);
+    delay(d.sleepSeconds * 1000UL);
+#else
     // ESP32 深睡，定时唤醒（醒来 = 重启，重新走一个周期）
     esp_sleep_enable_timer_wakeup((uint64_t)d.sleepSeconds * 1000000ULL);
     esp_deep_sleep_start();
     // 深睡成功的话到不了这里
+#endif
 }
 
 
@@ -282,9 +571,14 @@ void setup()
 
 void loop()
 {
+#if DEBUG_ESP_NO_SLEEP
+    // 调试模式：一个周期接一个周期跑（正式模式在 setup 里就深睡了，到不了这里）
+    runOneCycle();
+#else
     // 深睡模式下每次唤醒都是重启，永远到不了这里；
     // 留着以防深睡被跳过时卡死——理论上不会执行。
     delay(1000);
+#endif
 }
 
 // 必须使用 LilyGo 分支版 TinyGSM，否则编译时报错提示
