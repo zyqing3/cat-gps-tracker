@@ -1,0 +1,120 @@
+# AT+CAGPSTOGPS 复现测试日志（节选自 2026-10-13 整晚实验）
+# 环境：SIM7670G-MNGV / T-SIM7670G-S3-Standard / 室内窗边 / 4G 网络正常
+# 日志字段：[HH:MM:SS.mmm]（北京时间）
+
+======================================================================
+## A. 对照基线：直注路径（CAGPSTOLOCAL=0 + CAGPS）——3.2 秒定位
+======================================================================
+22:24:18.788 AGPS data ready
+AGPS chip data: 1,1,1,1,1,1,1,1
+GNSS power: ON
+22:24:18.873 GPS raw after power-on: 3,14,06,04,00,22.7541783,N,113.9313450,E,131026,142422.00,30.2,0.28,0.00,2.15,1.93,0.94,8
+22:24:18.873 GNSS powered on, waiting for fix
+22:24:22.042 GPS fix: lat=22.754179 lon=113.931343 sats GPS=14 BDS=6 GLO=4 GAL=0 pdop=1.9 hdop=0.9
+22:24:22.043 Upload: deviceid=cat-collar-001&lat=22.7541790&lon=113.9313431&timestamp=2026-10-13T14:24:22Z&speed=0.28&altitude=30.20&batt=100
+22:24:22.513 Upload OK (attempt 1)
+22:24:22.521 Cycle end: normal, sleep 10 s
+modem sleep status: DTR_LEVEL = 1, CSCLK = 1, GPS_STATUS = 0.
+22:24:22.702 (debug) ESP32 awake, delaying 10 s (modem asleep)
+22:24:33.227 PSM requested (TAU/active per official example)
+eDRX granted: 0
+modem awake status: DTR_LEVEL = 0, CSCLK = 1, GPS_STATUS = 0.
+AGPS pull(mode0) reply: success.
+AGPS chip data: 0,0,0,0,0,0,0,0
+22:24:48.934 AGPS data ready
+AGPS chip data: 1,1,1,1,1,1,1,1
+GNSS power: ON
+22:24:49.011 GPS raw after power-on: ,,,,,,,,
+22:24:49.011 GNSS powered on, waiting for fix
+22:24:56.040 GPS fix: lat=22.754263 lon=113.931328 sats GPS=11 BDS=5 GLO=0 GAL=4 pdop=2.8 hdop=1.0
+
+======================================================================
+## B. 缺陷：flash 裸注入，CHK 仅 GPS 可用，定位 48 秒
+======================================================================
+22:12:42.270 PSM requested (TAU/active per official example)
+eDRX granted: 0
+modem awake status: DTR_LEVEL = 0, CSCLK = 1, GPS_STATUS = 0.
+AGPS chip data: 1,1,0,0,0,0,0,0
+22:12:46.902 AGPS injected from flash cache
+GNSS power: ON
+22:12:46.924 GPS raw after power-on: ,,,,,,,,
+22:12:46.924 GNSS powered on, waiting for fix
+22:13:34.040 GPS fix: lat=22.754166 lon=113.931183 sats GPS=8 BDS=4 GLO=1 GAL=8 pdop=2.6 hdop=1.0
+22:13:34.041 Upload: deviceid=cat-collar-001&lat=22.7541656&lon=113.9311829&timestamp=2026-10-13T14:13:34Z&speed=0.14&altitude=55.60&batt=100
+22:13:34.556 Upload OK (attempt 1)
+22:13:34.565 Cycle end: normal, sleep 10 s
+modem sleep status: DTR_LEVEL = 1, CSCLK = 1, GPS_STATUS = 0.
+22:13:34.744 (debug) ESP32 awake, delaying 10 s (modem asleep)
+22:13:45.269 PSM requested (TAU/active per official example)
+eDRX granted: 0
+modem awake status: DTR_LEVEL = 0, CSCLK = 1, GPS_STATUS = 0.
+AGPS chip data: 1,1,0,0,0,0,0,0
+22:13:49.902 AGPS injected from flash cache
+GNSS power: ON
+22:13:49.924 GPS raw after power-on: ,,,,,,,,
+22:13:49.924 GNSS powered on, waiting for fix
+22:14:33.042 GPS fix: lat=22.754112 lon=113.931244 sats GPS=12 BDS=3 GLO=0 GAL=6 pdop=2.3 hdop=0.9
+22:14:33.043 Upload: deviceid=cat-collar-001&lat=22.7541122&lon=113.9312439&timestamp=2026-10-13T14:14:33Z&speed=0.28&altitude=48.60&batt=100
+22:14:33.552 Upload OK (attempt 1)
+
+======================================================================
+## C. 缺陷：注入后连续轮询 CAGPSCHK 10 秒恒为 0，定位 20 秒
+======================================================================
+22:43:47.306 AGPS data ready (downloaded to flash)
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+GNSS power: ON
+22:44:08.913 GPS raw after power-on: 3,10,02,00,10,22.7536433,N,113.9312000,E,131026,144412.00,97.6,0.15,334.51,1.61,1.33,0.91,9
+22:44:08.913 GNSS powered on, waiting for fix
+22:44:12.045 GPS fix: lat=22.753643 lon=113.931198 sats GPS=10 BDS=2 GLO=0 GAL=10 pdop=1.3 hdop=0.9
+22:44:12.046 Upload: deviceid=cat-collar-001&lat=22.7536430&lon=113.9311981&timestamp=2026-10-13T14:44:12Z&speed=0.15&altitude=97.60&batt=100
+22:44:12.576 Upload OK (attempt 1)
+22:44:12.584 Cycle end: normal, sleep 10 s
+modem sleep status: DTR_LEVEL = 1, CSCLK = 1, GPS_STATUS = 0.
+22:44:12.765 (debug) ESP32 awake, delaying 10 s (modem asleep)
+22:44:23.289 PSM requested (TAU/active per official example)
+eDRX granted: 0
+modem awake status: DTR_LEVEL = 0, CSCLK = 1, GPS_STATUS = 0.
+AGPS store(flash) reply: success.
+22:44:47.982 AGPS data ready (downloaded to flash)
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+AGPS chip data: 0,0,0,0,0,0,0,0
+
+======================================================================
+## D. 缺陷：CHK 显示四系全可用（1,1,1,1,1,1,1,1），定位仍 44 秒
+======================================================================
+22:55:12.509 flash(old) injected
+AGPS chip data: 0,0,1,1,0,0,0,0
+22:55:21.560 ram(fresh) injected
+AGPS chip data: 1,1,1,1,1,1,1,1
+modem clock: "26/10/13,22:55:21+32"
+GNSS power: ON
+22:55:21.704 GPS raw after power-on: ,,,,,,,,
+22:55:21.704 GNSS powered on, waiting for fix
+22:56:06.043 GPS fix: lat=22.746513 lon=113.925545 sats GPS=15 BDS=8 GLO=3 GAL=4 pdop=0.8 hdop=0.8
+22:56:06.044 Upload: deviceid=cat-collar-001&lat=22.7465134&lon=113.9255447&timestamp=2026-10-13T14:56:06Z&speed=0.16&altitude=2445.50&batt=100
+22:56:06.572 Upload OK (attempt 1)
+22:56:06.579 Cycle end: normal, sleep 10 s
+modem sleep status: DTR_LEVEL = 1, CSCLK = 1, GPS_STATUS = 0.
+22:56:06.758 (debug) ESP32 awake, delaying 10 s (modem asleep)
+22:56:17.283 PSM requested (TAU/active per official example)
+eDRX granted: 0
+modem awake status: DTR_LEVEL = 0, CSCLK = 1, GPS_STATUS = 0.
+22:56:27.567 fresh ephemeris downloaded to RAM
+22:56:36.568 flash(old) injected
+AGPS chip data: 0,0,0,0,0,0,0,0
+22:56:45.681 ram(fresh) injected
+AGPS chip data: 0,0,0,0,0,0,0,0
+modem clock: "26/10/13,22:56:45+32"
+GNSS power: ON
+22:56:45.766 GPS raw after power-on: ,,,,,,,,
+22:56:45.766 GNSS powered on, waiting for fix
