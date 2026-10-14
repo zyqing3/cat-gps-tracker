@@ -243,10 +243,17 @@ power::Event stepWakeModem()
     digitalWrite(MODEM_DTR_PIN, LOW);
     delay(500);
 
+    // 唤醒延迟探测（PSM 测试 #27）：记录第一条 AT 得到回应前的耗时。
+    // 基线（DTR 睡眠）≈ 1 秒内；若模组进入 PSM 深睡，唤醒延迟会明显变长。
+    unsigned long wakeT0 = millis();
+
     // 等 AT 就绪（最多 10 秒）
     bool ready = false;
     for (int i = 0; i < 10 && !ready; ++i) {
         ready = modem.testAT(1000);
+    }
+    if (ready) {
+        Serial.printf("wake latency: %lu ms\n", millis() - wakeT0);
     }
 
     if (!ready) {
@@ -290,11 +297,49 @@ power::Event stepWakeModem()
 
 #if PSM_ENABLE
     // PSM：向网络申请"上传完就深睡、保留注册"（睡眠电流可降到微安级；
-    // 是否批准由运营商网络决定，官方示例参数）
-    modem.sendAT("+CPSMS=1,,,\"01101111\",\"00001111\"");
+    // 是否批准由运营商网络决定）。活跃时间请求 4 秒（GPRS Timer2 编码
+    // 00000010 = 2 秒 × 2），让模组在 10 秒调试睡眠期内有机会真正进入 PSM，
+    // 便于唤醒延迟探测；正式用时要改回合适值。
+    modem.sendAT("+CPSMS=1,,,\"01101111\",\"00000010\"");
     if (modem.waitResponse(3000L) == 1) {
-        logStep("PSM requested (TAU/active per official example)");
+        logStep("PSM requested (TAU 70h, active 4s)");
+        // 读回请求值确认模组收下了
+        modem.sendAT("+CPSMS?");
+        if (modem.waitResponse(3000L, "+CPSMS:") == 1) {
+            String s = modem.stream.readStringUntil('\n');
+            modem.waitResponse();
+            s.trim();
+            Serial.printf("PSM readback: %s\n", s.c_str());
+        }
     }
+#if PSM_TEST_MODE
+    // PSM 协商发生在入网（ATTACH/TAU）时——参数变更后必须重新入网，
+    // 网络才会处理新的 PSM 请求。只做一次（调试模式 RAM 常驻）。
+    {
+        static bool psmReattachDone = false;
+        if (!psmReattachDone) {
+            psmReattachDone = true;
+            logStep("(psm-test) CFUN re-attach to negotiate PSM");
+            modem.sendAT("+CFUN=1,1");
+            delay(200);
+            for (int i = 0; i < 30; ++i) {
+                if (modem.testAT(1000)) {
+                    break;
+                }
+            }
+            // 等重新注册
+            unsigned long t0 = millis();
+            while (millis() - t0 < 60000UL) {
+                RegStatus st = modem.getRegistrationStatus();
+                if (st == REG_OK_HOME || st == REG_OK_ROAMING) {
+                    break;
+                }
+                delay(1000);
+            }
+            logStep("(psm-test) re-attach done");
+        }
+    }
+#endif
 #endif
 #if EDRX_ENABLE
     // eDRX：延长寻呼周期（睡觉时少醒几次听基站喊话），E-UTRAN(4)，请求 2621.44s
@@ -489,6 +534,13 @@ void goToSleep(const power::SleepDecision &d)
     // 关天线 + GNSS 总电源（库内 CGDRT=4,0 + CGSETV=4,0 + CGNSSPWR=0）
     modem.disableGPS(MODEM_GPS_ENABLE_GPIO, 0);
 
+#if PSM_TEST_MODE
+    // PSM 实验：不干预模组（不设 CSCLK 睡眠、DTR 保持低电平），
+    // 让它按"活跃时间"（请求值 4 秒）结束后自己进入 PSM 深睡；
+    // 下一轮醒来用 AT 戳醒并测唤醒延迟。
+    logStep("(psm-test) leave modem alone, expect PSM entry");
+    printLpStatus("modem idle status");
+#else
     // 让模块睡觉：CSCLK=1，配合 DTR 拉高（官方示例同款）
     modem.sleepEnable(true);
     pinMode(MODEM_DTR_PIN, OUTPUT);
@@ -500,6 +552,7 @@ void goToSleep(const power::SleepDecision &d)
     delay(100);
 
     printLpStatus("modem sleep status");  // 证明模组确实睡了（#26）
+#endif
 
     Serial.flush();
 
