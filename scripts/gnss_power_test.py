@@ -110,7 +110,14 @@ class Bridge:
         self.ser = None
 
     def request_stop(self, *_):
-        print("\n[!] 收到 Ctrl+C，正在收尾（关 GNSS + 释放串口）...")
+        # 第一次 Ctrl+C：温和收尾（跑完当前这一轮，关 GNSS，放串口）
+        # 第二次 Ctrl+C：不再客气，直接按默认行为抛 KeyboardInterrupt 立刻退出
+        # （否则连按也没用，用户会以为脚本卡死了）
+        if self._stop:
+            print("\n[!] 再次收到 Ctrl+C，立即退出")
+            raise KeyboardInterrupt
+        print("\n[!] 收到 Ctrl+C，正在收尾（关 GNSS + 释放串口）... "
+              "再按一次 Ctrl+C 可强制立即退出")
         self._stop = True
 
     @property
