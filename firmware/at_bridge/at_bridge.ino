@@ -93,6 +93,13 @@ void setup()
     Serial.println("Type AT commands below; ~help for special commands");
 
     // DTR 拉低 = 模块保持常开（本桥不省电）
+    //
+    // 必须先解锁 DTR 的 gpio_hold！主固件入睡前会 gpio_hold_en(DTR)+gpio_deep_sleep_hold_en()
+    // 把 DTR 锁在高电平（让模块睡觉），而这个锁存在 RTC 域里、**跨软件复位保留**
+    // （esptool 烧录后的 RTS 复位也清不掉）。不解锁的话下面的 digitalWrite 完全无效，
+    // 模块被 DTR 高电平压在睡觉状态，AT 全部无回应（实测踩坑：烧桥后 AT 不回 OK）。
+    gpio_hold_dis((gpio_num_t)MODEM_DTR_PIN);
+    gpio_deep_sleep_hold_dis();
     pinMode(MODEM_DTR_PIN, OUTPUT);
     digitalWrite(MODEM_DTR_PIN, LOW);
 

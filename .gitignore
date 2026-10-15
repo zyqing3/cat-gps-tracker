@@ -7,3 +7,6 @@ firmware/gps_collar/build/
 
 # 本机测试的可执行文件
 tests/*.exe
+
+# Python 字节码缓存
+__pycache__/
