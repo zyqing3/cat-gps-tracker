@@ -148,6 +148,63 @@ void printLpStatus(const char *label)
     Serial.printf("%s: %s %s %s\n", label, lines[2].c_str(), lines[4].c_str(), lines[5].c_str());
 }
 
+// ---------- 调试期 AT 控制台（仅 DEBUG_ESP_NO_SLEEP 模式） ----------
+// 在假休眠的延时期间开放：USB 输入按行转发给模组、回应/URC 实时打印。
+// 只要持续有输入就延长会话（交互式体验）；没输入则按正常睡眠时长走。
+// 注意：CSCLK=1 的 DTR 睡眠只能靠"拉低 DTR"唤醒（UART 数据唤不醒），
+// 所以第一条命令前先释放 DTR 锁存并拉低唤醒模组，会话结束再让它睡回去。
+void serviceAtConsole(unsigned long minMs)
+{
+    unsigned long t0 = millis();
+    unsigned long lastInput = millis();
+    String line;
+    bool modemAwake = false;
+    while (true) {
+        // USB → 模组（按行转发）
+        while (Serial.available()) {
+            char c = (char)Serial.read();
+            if (c == '\n' || c == '\r') {
+                line.trim();
+                if (line.length()) {
+                    if (!modemAwake) {
+                        // 唤醒模组：释放锁存 + 拉低 DTR
+                        gpio_hold_dis((gpio_num_t)MODEM_DTR_PIN);
+                        pinMode(MODEM_DTR_PIN, OUTPUT);
+                        digitalWrite(MODEM_DTR_PIN, LOW);
+                        delay(300);
+                        modemAwake = true;
+                        Serial.println("(modem woken for console)");
+                    }
+                    Serial.println("> " + line);
+                    SerialAT.print(line);
+                    SerialAT.print("\r\n");
+                    lastInput = millis();
+                }
+                line = "";
+            } else if (line.length() < 200) {
+                line += c;
+            }
+        }
+        // 模组回应 / URC → USB
+        while (SerialAT.available()) {
+            Serial.write(SerialAT.read());
+        }
+        // 过了最短时间且 5 秒无输入 → 结束会话，继续周期
+        if (millis() - t0 >= minMs && millis() - lastInput > 5000) {
+            break;
+        }
+        delay(10);
+    }
+
+    // 会话结束：让模组重新入睡（恢复与 goToSleep 一致的 DTR 高 + 锁存）
+    if (modemAwake) {
+        modem.sleepEnable(true);
+        digitalWrite(MODEM_DTR_PIN, HIGH);
+        gpio_hold_en((gpio_num_t)MODEM_DTR_PIN);
+        gpio_deep_sleep_hold_en();
+    }
+}
+
 // 打印 GPS 原始诊断串（AT+CGNSSINFO 的原始回应）：
 //   mode(0/1=未定位 2=2D 3=3D) + 四大星座卫星数(GPS/北斗/GLONASS/Galileo)
 //   + 经纬度 + 时间 + PDOP/HDOP/VDOP
@@ -559,10 +616,11 @@ void goToSleep(const power::SleepDecision &d)
 #if DEBUG_ESP_NO_SLEEP
     // 调试模式：ESP32 保持清醒只延时（USB 串口不断线，方便盯模组状态）；
     // 模组此刻照常在睡觉（DTR 被 hold 锁在高电平 + CSCLK=1）。
+    // 延时期间开放 AT 控制台：直接敲 AT 命令与模组对话（命令会临时唤醒它）。
     logTime();
-    Serial.printf("(debug) ESP32 awake, delaying %lu s (modem asleep)\n",
+    Serial.printf("(debug) delaying %lu s; AT console open — type AT commands to talk to the modem\n",
                   (unsigned long)d.sleepSeconds);
-    delay(d.sleepSeconds * 1000UL);
+    serviceAtConsole(d.sleepSeconds * 1000UL);
 #else
     // ESP32 深睡，定时唤醒（醒来 = 重启，重新走一个周期）
     esp_sleep_enable_timer_wakeup((uint64_t)d.sleepSeconds * 1000000ULL);
