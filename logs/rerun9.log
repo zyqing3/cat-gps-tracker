@@ -1,0 +1,139 @@
+用例矩阵：1 格 × 3 次 = 3 次测试
+  星座：9=GPS+BDS
+  启动：default
+  串口：COM7  单格超时：180s
+等待模组就绪...
+    > AT
+
+======================================================================
+第 1/3 轮
+======================================================================
+
+--- mode=9(GPS+BDS) start=default ---
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+    > AT
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,1
+    > AT+CGNSSPWR=1
+  [OK] GNSS 上电 (t_power)
+    > AT+CGNSSMODE=9
+  [t] 开始搜星（setup 3.4s）
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+  [OK] 定位成功 TTFF=30s (GNSS 开启 33s) sats={'gps': 12.0, 'glonass': None, 'galileo': None, 'beidou': 11.0}
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+
+======================================================================
+第 2/3 轮
+======================================================================
+
+--- mode=9(GPS+BDS) start=default ---
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+    > AT
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,1
+    > AT+CGNSSPWR=1
+  [OK] GNSS 上电 (t_power)
+    > AT+CGNSSMODE=9
+  [t] 开始搜星（setup 3.4s）
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+  [OK] 定位成功 TTFF=37s (GNSS 开启 40s) sats={'gps': 3.0, 'glonass': None, 'galileo': None, 'beidou': 8.0}
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+
+======================================================================
+第 3/3 轮
+======================================================================
+
+--- mode=9(GPS+BDS) start=default ---
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+    > AT
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,1
+    > AT+CGNSSPWR=1
+  [OK] GNSS 上电 (t_power)
+    > AT+CGNSSMODE=9
+  [t] 开始搜星（setup 3.4s）
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+    > AT+CGNSSINFO
+  [OK] 定位成功 TTFF=24s (GNSS 开启 28s) sats={'gps': 15.0, 'glonass': None, 'galileo': None, 'beidou': 14.0}
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+
+总耗时 158s
+    > AT+CGDRT=1,1
+    > AT+CGSETV=1,0
+    > AT+CGNSSPWR=0
+
+====================================================================================================
+汇总表（每格 ≥1 次；TTFF 取中位数）
+====================================================================================================
+星座组合                      启动       成功    TTFF中位    GNSS开    卫星    估算电流      估算能耗      
+----------------------------------------------------------------------------------------------------
+GPS+BDS                   default  3/3   30s       33s      23    8.7mA    0.080mAh  
+----------------------------------------------------------------------------------------------------
+
+* 最低功耗配置：GPS+BDS / default （TTFF 中位 30s，估计 0.080 mAh）
+
+共 3 次测试：成功 3，超时 0，出错 0
+
+结果已写入：
+   logs/gnss_power_rerun9.json
+   logs/gnss_power_rerun9.csv

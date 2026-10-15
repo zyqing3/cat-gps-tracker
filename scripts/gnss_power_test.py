@@ -247,12 +247,12 @@ def parse_cgnssinfo(text):
 
         return {
             "mode": int(parts[0]) if parts and parts[0].isdigit() else None,
-            # ⚠ 字段顺序以 TinyGSM 的 SIM7672 实现为准（TinyGsmClientSIM7672.h
-            #   getGPS_ExImpl）：GPS, BEIDOU, GLONASS, GALILEO。
-            #   手册 21.2.21 写的是 GPS,GLONASS,GALILEO,BEIDOU —— 两者不一致，
-            #   本板主固件用的 TinyGSM 解析实测可用，故采信 TinyGSM 的顺序。
+            # 字段顺序采用**手册 21.2.21**：GPS, GLONASS, GALILEO, BEIDOU。
+            # （TinyGSM 的 TinyGsmClientSIM7672.h 注释里写的是 GPS,BEIDOU,GLONASS,
+            #  GALILEO，两者矛盾。本板实测 mode=9(GPS+北斗) 只有第 1、第 4 个字段
+            #  有数、第 2/3 字段为空 —— 正好对应「GPS + BEIDOU 使能」，故采信手册顺序。）
             "sats": {
-                "gps": num(1), "beidou": num(2), "glonass": num(3), "galileo": num(4),
+                "gps": num(1), "glonass": num(2), "galileo": num(3), "beidou": num(4),
             },
             "lat": parts[5] if len(parts) > 5 and parts[5] else None,
             "ns": parts[6] if len(parts) > 6 and parts[6] else None,
@@ -265,6 +265,27 @@ def parse_cgnssinfo(text):
             "raw": line,
         }
     return None
+
+
+def is_valid_fix(info):
+    """判断一个 mode=2/3 的回应是不是「真定位」。
+
+    项目主固件踩过的坑：刚上电的 GNSS 偶尔报「假定位」——mode 明明是 2/3，
+    但卫星数是空的、日期是乱码，这种数据服务器会拒收。所以这里跟主固件
+    stepWaitFix 用同一套体检标准：必须看得到卫星 + 日期是合理的 ddmmyy。
+    """
+    if info is None or info["mode"] not in (2, 3):
+        return False
+    # 至少得看到卫星（全空 = 假定位）
+    total = sum(v for v in info["sats"].values() if v)
+    if total <= 0:
+        return False
+    # 日期必须是合理的 ddmmyy（20 年之后），否则时间的可信度存疑
+    d = info.get("date")
+    if not d or len(d) != 6 or not d.isdigit():
+        return False
+    day, mon, yr = int(d[0:2]), int(d[2:4]), int(d[4:6])
+    return 1 <= day <= 31 and 1 <= mon <= 12 and 20 <= yr <= 99
 
 
 # ---------------------------------------------------------------- 单格测试
@@ -286,6 +307,7 @@ def run_cell(br, mode, start, args):
         "setup_s": None,       # GNSS 上电 → 搜索开始（上电初始化 + 设星座）
         "gnss_on_s": None,     # GNSS 上电 → 定位（= 能耗窗口）
         "polls": 0,
+        "fake_fixes": 0,
         "sats": None,
         "fix_mode": None,
         "fix": {},
@@ -366,7 +388,12 @@ def run_cell(br, mode, start, args):
                     "sats": info["sats"],
                     "raw": info["raw"],     # 留原始回应，报告里当证据
                 })
-            if info["mode"] in (2, 3):
+            if info["mode"] in (2, 3) and not is_valid_fix(info):
+                # 假定位：记下来但不认，继续等真的
+                result["fake_fixes"] += 1
+                print(f"    (假定位，忽略：{info['raw']})")
+
+            if is_valid_fix(info):
                 fix = info
                 result["ttff_s"] = elapsed
                 result["gnss_on_s"] = round(now - t_power, 2)
@@ -429,6 +456,7 @@ def summarize(results, args):
             "ok": sum(1 for r in rs if r["ok"]),
             "timeouts": sum(1 for r in rs if r["timeout"]),
             "errors": sum(1 for r in rs if r["error"]),
+            "fake_fixes": sum(r.get("fake_fixes", 0) for r in rs),
             "ttff_median_s": median_or_none(ttff),
             "ttff_min_s": min(ttff) if ttff else None,
             "ttff_max_s": max(ttff) if ttff else None,
@@ -498,11 +526,11 @@ def write_outputs(results, rows, args):
     with open(root + ".csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow(["星座mode", "星座组合", "启动", "次数", "成功", "超时", "出错",
-                    "TTFF中位s", "TTFF最小s", "TTFF最大s", "GNSS开启中位s",
-                    "卫星数中位", "估算电流mA", "估算能耗mAh"])
+                    "假定位次数", "TTFF中位s", "TTFF最小s", "TTFF最大s",
+                    "GNSS开启中位s", "卫星数中位", "估算电流mA", "估算能耗mAh"])
         for r in rows:
             w.writerow([r["mode"], r["mode_name"], r["start"], r["runs"], r["ok"],
-                        r["timeouts"], r["errors"],
+                        r["timeouts"], r["errors"], r.get("fake_fixes", 0),
                         r["ttff_median_s"], r["ttff_min_s"], r["ttff_max_s"],
                         r["gnss_on_median_s"], r["sats_median"],
                         r["current_ma"], r["energy_mah"]])

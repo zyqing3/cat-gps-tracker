@@ -1,0 +1,727 @@
+{
+  "generated_at": "2026-10-16T00:15:11",
+  "port": "COM7",
+  "reps": 3,
+  "timeout_s": 180,
+  "gap_s": 5.0,
+  "power_settle_s": 2.0,
+  "modes": [
+    9
+  ],
+  "starts": [
+    "default"
+  ],
+  "current_assumption_ma": {
+    "1": 7.4,
+    "3": 9.8,
+    "5": 10.0,
+    "9": 8.7,
+    "13": 11.1,
+    "15": 10.7
+  },
+  "current_source": "SIM7672X HW Design V1.02 Table 56 (VBAT=3.8V, CAT1 off)",
+  "summary": [
+    {
+      "mode": 9,
+      "mode_name": "GPS+BDS",
+      "start": "default",
+      "runs": 3,
+      "ok": 3,
+      "timeouts": 0,
+      "errors": 0,
+      "fake_fixes": 0,
+      "ttff_median_s": 29.68,
+      "ttff_min_s": 24.27,
+      "ttff_max_s": 36.89,
+      "gnss_on_median_s": 33.09,
+      "sats_median": 23.0,
+      "current_ma": 8.7,
+      "energy_mah": 0.08
+    }
+  ],
+  "runs": [
+    {
+      "mode": 9,
+      "mode_name": "GPS+BDS",
+      "start": "default",
+      "timestamp": "2026-10-16T00:12:29",
+      "ok": true,
+      "timeout": false,
+      "error": null,
+      "ttff_s": 29.68,
+      "setup_s": 3.41,
+      "gnss_on_s": 33.09,
+      "polls": 17,
+      "fake_fixes": 0,
+      "sats": {
+        "gps": 12.0,
+        "glonass": null,
+        "galileo": null,
+        "beidou": 11.0
+      },
+      "fix_mode": 3,
+      "fix": {
+        "lat": "22.7540666",
+        "ns": "N",
+        "lon": "113.9312800",
+        "ew": "E",
+        "date": "151026",
+        "utc": "161315.80",
+        "pdop": 1.81,
+        "hdop": 1.58,
+        "vdop": 0.89,
+        "nosv": 9.0
+      },
+      "last_info": "+CGNSSINFO: 3,12,,,11,22.7540666,N,113.9312800,E,151026,161315.80,29.4,0.11,0.00,1.81,1.58,0.89,9",
+      "history": [
+        {
+          "t": 4.21,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 6.02,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 7.82,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 9.63,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 11.43,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 13.24,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 15.04,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 16.85,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 18.65,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 20.46,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 22.26,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 24.07,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 25.87,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 27.68,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 29.48,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 31.29,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 33.09,
+          "mode": 3,
+          "sats": {
+            "gps": 12.0,
+            "glonass": null,
+            "galileo": null,
+            "beidou": 11.0
+          },
+          "raw": "+CGNSSINFO: 3,12,,,11,22.7540666,N,113.9312800,E,151026,161315.80,29.4,0.11,0.00,1.81,1.58,0.89,9"
+        }
+      ],
+      "rep": 1
+    },
+    {
+      "mode": 9,
+      "mode_name": "GPS+BDS",
+      "start": "default",
+      "timestamp": "2026-10-16T00:13:21",
+      "ok": true,
+      "timeout": false,
+      "error": null,
+      "ttff_s": 36.89,
+      "setup_s": 3.41,
+      "gnss_on_s": 40.3,
+      "polls": 21,
+      "fake_fixes": 0,
+      "sats": {
+        "gps": 3.0,
+        "glonass": null,
+        "galileo": null,
+        "beidou": 8.0
+      },
+      "fix_mode": 3,
+      "fix": {
+        "lat": "22.7540366",
+        "ns": "N",
+        "lon": "113.9313450",
+        "ew": "E",
+        "date": "151026",
+        "utc": "161415.29",
+        "pdop": 1.95,
+        "hdop": 1.73,
+        "vdop": 0.91,
+        "nosv": 7.0
+      },
+      "last_info": "+CGNSSINFO: 3,03,,,08,22.7540366,N,113.9313450,E,151026,161415.29,37.6,0.03,0.00,1.95,1.73,0.91,7",
+      "history": [
+        {
+          "t": 4.21,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 6.02,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 7.82,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 9.63,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 11.43,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 13.23,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 15.04,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 16.84,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 18.65,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 20.45,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 22.25,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 24.06,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 25.86,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 27.67,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 29.47,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 31.28,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 33.08,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 34.89,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 36.69,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 38.49,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 40.3,
+          "mode": 3,
+          "sats": {
+            "gps": 3.0,
+            "glonass": null,
+            "galileo": null,
+            "beidou": 8.0
+          },
+          "raw": "+CGNSSINFO: 3,03,,,08,22.7540366,N,113.9313450,E,151026,161415.29,37.6,0.03,0.00,1.95,1.73,0.91,7"
+        }
+      ],
+      "rep": 2
+    },
+    {
+      "mode": 9,
+      "mode_name": "GPS+BDS",
+      "start": "default",
+      "timestamp": "2026-10-16T00:14:20",
+      "ok": true,
+      "timeout": false,
+      "error": null,
+      "ttff_s": 24.27,
+      "setup_s": 3.41,
+      "gnss_on_s": 27.67,
+      "polls": 14,
+      "fake_fixes": 0,
+      "sats": {
+        "gps": 15.0,
+        "glonass": null,
+        "galileo": null,
+        "beidou": 14.0
+      },
+      "fix_mode": 3,
+      "fix": {
+        "lat": "22.7536333",
+        "ns": "N",
+        "lon": "113.9314566",
+        "ew": "E",
+        "date": "151026",
+        "utc": "161502.00",
+        "pdop": 1.82,
+        "hdop": 1.58,
+        "vdop": 0.91,
+        "nosv": 10.0
+      },
+      "last_info": "+CGNSSINFO: 3,15,,,14,22.7536333,N,113.9314566,E,151026,161502.00,63.6,0.19,0.00,1.82,1.58,0.91,10",
+      "history": [
+        {
+          "t": 4.21,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 6.02,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 7.82,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 9.63,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 11.43,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 13.24,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 15.04,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 16.84,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 18.65,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 20.45,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 22.26,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 24.06,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 25.87,
+          "mode": null,
+          "sats": {
+            "gps": null,
+            "glonass": null,
+            "galileo": null,
+            "beidou": null
+          },
+          "raw": "+CGNSSINFO: ,,,,,,,,"
+        },
+        {
+          "t": 27.67,
+          "mode": 3,
+          "sats": {
+            "gps": 15.0,
+            "glonass": null,
+            "galileo": null,
+            "beidou": 14.0
+          },
+          "raw": "+CGNSSINFO: 3,15,,,14,22.7536333,N,113.9314566,E,151026,161502.00,63.6,0.19,0.00,1.82,1.58,0.91,10"
+        }
+      ],
+      "rep": 3
+    }
+  ]
+}
