@@ -1,8 +1,9 @@
 #!/bin/bash
-# 烧录 GPS 项圈固件到 T-SIM7670G-S3 开发板（先编译到 firmware/build，再烧录）
+# 烧录固件到 T-SIM7670G-S3 开发板（先编译到 firmware/build，再烧录）
 # 用法：
-#   bash scripts/flash.sh          ← 自动找 ESP32 串口
-#   bash scripts/flash.sh COM7     ← 手动指定串口
+#   bash scripts/flash.sh                         ← 烧主固件，自动找 ESP32 串口
+#   bash scripts/flash.sh firmware/at_bridge      ← 烧指定草图（如 AT 直通桥）
+#   bash scripts/flash.sh firmware/gps_collar COM7 ← 指定草图 + 指定串口
 # 前提：板子用 USB 线连电脑（板子参数与编译脚本 compile.sh 一致）
 
 set -e
@@ -13,23 +14,26 @@ AC="/c/Program Files/Arduino CLI/arduino-cli.exe"
 
 FQBN="esp32:esp32:esp32s3:PSRAM=enabled,FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,CDCOnBoot=cdc,USBMode=hwcdc,FlashMode=qio"
 
-PORT="${1:-}"
+SKETCH="${1:-firmware/gps_collar}"
+NAME="$(basename "$SKETCH")"
+
+PORT="${2:-}"
 if [ -z "$PORT" ]; then
   # 自动找：board list 里 ESP32 的口
   PORT=$("$AC" board list | grep -i "esp32" | grep -oE "COM[0-9]+" | head -1)
   if [ -z "$PORT" ]; then
-    echo "❌ 找不到 ESP32 串口，请把板子插上 USB，或手动指定：bash scripts/flash.sh COM7"
+    echo "❌ 找不到 ESP32 串口，请把板子插上 USB，或手动指定：bash scripts/flash.sh $SKETCH COM7"
     exit 1
   fi
 fi
 
-echo "① 编译固件 ..."
+echo "① 编译固件（$NAME）..."
 "$AC" compile \
   --fqbn "$FQBN" \
   --build-property "compiler.cpp.extra_flags=-DLILYGO_SIM7670G_S3_STAN" \
   --libraries vendor/LilyGo-Modem-Series/lib \
   --output-dir firmware/build \
-  firmware/gps_collar
+  "$SKETCH"
 
 echo "② 烧录到串口 $PORT ..."
 # 为什么不用 arduino-cli upload：
@@ -47,9 +51,9 @@ fi
 
 # 低功耗固件深睡时串口会消失：烧录要趁板子醒着，或按住 BOOT 点一下 RST 进下载模式
 "$ESPT" --port "$PORT" --no-stub write_flash \
-  0x0     firmware/build/gps_collar.ino.bootloader.bin \
-  0x8000  firmware/build/gps_collar.ino.partitions.bin \
+  0x0     "firmware/build/$NAME.ino.bootloader.bin" \
+  0x8000  "firmware/build/$NAME.ino.partitions.bin" \
   0xe000  firmware/build/boot_app0_flashed.bin \
-  0x10000 firmware/build/gps_collar.ino.bin
+  0x10000 "firmware/build/$NAME.ino.bin"
 
 echo "✅ 烧录成功（看日志：python scripts/live_monitor.py 或 tail -f logs/live.log）"
