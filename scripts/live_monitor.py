@@ -46,7 +46,16 @@ def main():
                 print("[live] 1 分钟内没找到板子串口（深睡中？），继续等 ...", flush=True)
                 continue
             try:
-                ser = serial.Serial(port, BAUD, timeout=0.2)
+                # 必须在 open() 之前释放 DTR/RTS：打开串口时断言 DTR 会复位
+                # ESP32-S3（实测 rst:0x15 USB_UART_CHIP_RESET），深睡中的板子
+                # 会被"打开串口"这个动作本身唤醒重启——监视必须不碰这两根线
+                ser = serial.Serial()
+                ser.port = port
+                ser.baudrate = BAUD
+                ser.timeout = 0.2
+                ser.dtr = False
+                ser.rts = False
+                ser.open()
                 print(f"[live] 已连接 {port}", flush=True)
             except Exception as e:
                 print(f"[live] 打开 {port} 失败：{e}，稍后重试", flush=True)

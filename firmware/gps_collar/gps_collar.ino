@@ -349,6 +349,11 @@ power::Event stepWakeModem()
         }
         logStep("activating network (GPRS)");
         modem.setNetworkActive(APN);
+    } else if (!modem.isGprsConnected()) {
+        // 长睡眠后 PDP 数据链路可能已掉（注册还在但上不了网），
+        // AGPS 下载和 HTTP 上传都依赖它——每轮确保 GPRS 激活
+        logStep("PDP lost after sleep, re-activating GPRS");
+        modem.setNetworkActive(APN);
     }
     syncWallClock();  // 拿到网络时间，日志从此用实时时间戳
 

@@ -61,7 +61,15 @@ def main():
     log_path = log_dir / f"serial_{stamp}.log"
     print(f"[哨兵] 板子醒了！串口 {port}，日志写到 {log_path}", flush=True)
 
-    ser = serial.Serial(port, BAUD, timeout=0.2)
+    # open() 前释放 DTR/RTS：打开串口断言 DTR 会复位 ESP32-S3
+    # （rst:0x15 USB_UART_CHIP_RESET），深睡中的板子会被打开动作唤醒重启
+    ser = serial.Serial()
+    ser.port = port
+    ser.baudrate = BAUD
+    ser.timeout = 0.2
+    ser.dtr = False
+    ser.rts = False
+    ser.open()
     last_data = time.time()
     port_gone_at = None
 
