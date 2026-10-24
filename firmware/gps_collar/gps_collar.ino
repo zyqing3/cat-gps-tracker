@@ -34,6 +34,13 @@ payload::Config cfg;
 // 省电参数（从 config.h 填入）
 power::Params params;
 
+// ---------- 深睡重启诊断 ----------
+// RTC 内存跨深睡保留（断电后不可信，用 magic 判首次开机）：
+// 记录开机序号与上一轮入睡原因，排查"跑几轮后不再醒来"类故障。
+RTC_DATA_ATTR uint32_t rtcMagic = 0;
+RTC_DATA_ATTR uint32_t bootCount = 0;
+RTC_DATA_ATTR char lastSleepReason[32] = "";
+
 // ---------- 实时时钟（毫秒级日志时间戳） ----------
 // 权威时钟源：GPS 卫星 UTC 时间（定位成功后校准）；定位前用模组 AT+CCLK? 过渡。
 // 毫秒部分用 ESP32 micros() 细分；未同步成功前退回 [开机秒数] 格式。
@@ -569,6 +576,8 @@ power::Event stepUpload(const GPSInfo &info)
         if (!power::shouldRetryUpload(attempt)) {
             return power::Event::UploadFailed;
         }
+        // 重试前重激活 PDP：网络抖动后数据链路常已断开，连着重发只会再失败
+        modem.setNetworkActive(APN);
     }
 }
 
@@ -595,6 +604,33 @@ void goToSleep(const power::SleepDecision &d)
 
     // 关天线 + GNSS 总电源（库内 CGDRT=4,0 + CGSETV=4,0 + CGNSSPWR=0）
     modem.disableGPS(MODEM_GPS_ENABLE_GPIO, 0);
+
+    // 故障轮自愈：网络失败后模组常处于"半死"状态（实测：AGPS 失败 + 上传 702
+    // 的下一轮，板子会直接不再醒来）——睡前给模组彻底断电重启，下轮干净出发。
+    if (strstr(d.reason, "fail") != nullptr || strstr(d.reason, "dead") != nullptr) {
+        logStep("failure cycle: full modem power cycle before sleep");
+        pinMode(BOARD_PWRKEY_PIN, OUTPUT);
+        digitalWrite(BOARD_PWRKEY_PIN, LOW);
+        delay(100);
+        digitalWrite(BOARD_PWRKEY_PIN, HIGH);
+        delay(MODEM_POWERON_PULSE_WIDTH_MS);
+        digitalWrite(BOARD_PWRKEY_PIN, LOW);  // 第一下：关机（若开机）
+        delay(3000);
+        digitalWrite(BOARD_PWRKEY_PIN, LOW);
+        delay(100);
+        digitalWrite(BOARD_PWRKEY_PIN, HIGH);
+        delay(MODEM_POWERON_PULSE_WIDTH_MS);
+        digitalWrite(BOARD_PWRKEY_PIN, LOW);  // 第二下：开机
+        bool back = false;
+        for (int i = 0; i < 30 && !back; ++i) {
+            back = modem.testAT(1000);
+        }
+        logStep(back ? "modem power-cycled OK" : "modem power-cycle incomplete");
+    }
+
+    // 记入 RTC 内存：本轮入睡原因（供下次开机诊断"死前最后一步"）
+    strncpy(lastSleepReason, d.reason, sizeof(lastSleepReason) - 1);
+    lastSleepReason[sizeof(lastSleepReason) - 1] = 0;
 
 #if PSM_TEST_MODE
     // PSM 实验：不干预模组（不设 CSCLK 睡眠、DTR 保持低电平），
@@ -671,6 +707,21 @@ void setup()
     Serial.println();
     Serial.println("=== GPS collar firmware (low-power) ===");
     Serial.println("Log lines show [seconds since boot]; upload lines include UTC time");
+
+    // 深睡重启诊断：开机序号 + 唤醒原因 + 上一轮入睡原因（RTC 内存跨深睡保留）。
+    // 断电后首次开机会重置计数；若板子"跑几轮后死掉"，重新上电后的这行日志
+    // 能告诉我们死前跑了几轮、最后一步是什么。
+    esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+    if (rtcMagic != 0xC0FFEE) {
+        rtcMagic = 0xC0FFEE;
+        bootCount = 0;
+        lastSleepReason[0] = 0;
+        Serial.printf("[boot #1] first boot after power-on (wake cause=%d)\n", (int)cause);
+    } else {
+        Serial.printf("[boot #%lu] wake cause=%d, last cycle ended: %s\n",
+                      bootCount, (int)cause, lastSleepReason);
+    }
+    bootCount++;
 
     // 从 config.h 填入配置
     cfg.server   = TRACCAR_SERVER;
